@@ -1,7 +1,7 @@
 <idea-plugin require-restart="true">
   <id>ir.persian.rtlaichat</id>
   <name>Persian RTL for AI Chat</name>
-  <version>1.0.1</version>
+  <version>1.0.2</version>
   <vendor>rtl-ai-chat</vendor>
 
   <description><![CDATA[

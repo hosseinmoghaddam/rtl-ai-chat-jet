@@ -8,6 +8,7 @@ import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.Collections;
 
 /**
@@ -26,21 +27,43 @@ public final class PatchSmokeTest {
   public static void main(String[] args) throws Throwable {
     String agentJar = args[0];
     File outDir = new File(args[1]);
+    boolean directionOnly = Arrays.asList(args).contains("--direction-only");
+    boolean preloadedAgent = Arrays.asList(args).contains("--preloaded-agent");
 
-    report("before");
-    render(new File(outDir, "before.png"));
+    if (!directionOnly) report("before");
+    assertDirection("before explicit LTR", "سلام دنیا", "Ltr");
+    if (!directionOnly) render(new File(outDir, "before.png"));
 
-    VirtualMachine vm = VirtualMachine.attach(String.valueOf(ProcessHandle.current().pid()));
-    vm.loadAgent(agentJar);
-    vm.detach();
+    if (!preloadedAgent) {
+      VirtualMachine vm = VirtualMachine.attach(String.valueOf(ProcessHandle.current().pid()));
+      vm.loadAgent(agentJar);
+      vm.detach();
+    }
 
     ComposeTextDirectionPatch.setEnabled(true);
     System.out.println("patched=" + ComposeTextDirectionPatch.isPatched());
-    report("after");
-    render(new File(outDir, "after.png"));
+    assertDirection("Persian with explicit LTR", "سلام دنیا", "Rtl");
+    assertDirection("mixed Persian with explicit LTR", "API رو چطوری صدا بزنم؟", "Rtl");
+    assertDirection("English with explicit LTR", "This is English.", "Ltr");
+    if (!directionOnly) {
+      report("after");
+      render(new File(outDir, "after.png"));
+    }
 
     ComposeTextDirectionPatch.setEnabled(false);
-    report("reverted");
+    assertDirection("reverted explicit LTR", "سلام دنیا", "Ltr");
+    if (!directionOnly) report("reverted");
+    System.out.println("Direction checks passed");
+  }
+
+  private static void assertDirection(String label, String value, String expected) throws Throwable {
+    Class<?> textDirectionType = Class.forName("androidx.compose.ui.text.style.TextDirection");
+    Object ltr = method(textDirectionType, "box-impl").invoke(null, textDirection("getLtr"));
+    Object resolved = method(Class.forName("androidx.compose.ui.text.platform.SkiaParagraphIntrinsics_skikoKt"),
+                             "resolveTextDirection-").invoke(null, value, ltr, null);
+    if (!expected.equals(resolved.toString())) {
+      throw new AssertionError(label + ": expected " + expected + ", got " + resolved);
+    }
   }
 
   private static void report(String label) throws Throwable {

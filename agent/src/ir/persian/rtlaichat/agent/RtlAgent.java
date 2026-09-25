@@ -21,8 +21,8 @@ public final class RtlAgent {
   }
 
   /**
-   * True when a paragraph has more RTL letters than LTR letters, e.g. {@code "API رو چطوری صدا بزنم؟"},
-   * which the plain first-strong-character rule would lay out as LTR.
+   * True when a paragraph starts with an RTL letter or has more RTL than LTR letters.
+   * The latter covers {@code "API رو چطوری صدا بزنم؟"}.
    */
   public static boolean mostlyRtl(CharSequence text) {
     int rtl = 0;
@@ -32,6 +32,7 @@ public final class RtlAgent {
       switch (Character.getDirectionality(cp)) {
         case Character.DIRECTIONALITY_RIGHT_TO_LEFT:
         case Character.DIRECTIONALITY_RIGHT_TO_LEFT_ARABIC:
+          if (rtl == 0 && ltr == 0) return true;
           rtl++;
           break;
         case Character.DIRECTIONALITY_LEFT_TO_RIGHT:

@@ -22,8 +22,8 @@ import java.util.Set;
  * <ol>
  *   <li>{@code TextStyleKt.resolveTextDirection}: treat {@code TextDirection.Unspecified} as {@code TextDirection.Content},
  *   so every paragraph takes its direction from its text (like HTML {@code dir="auto"}).</li>
- *   <li>{@code SkiaParagraphIntrinsics_skikoKt.contentBasedTextDirection}: additionally treat a paragraph as RTL when most of
- *   its letters are RTL, so {@code "API رو چطوری صدا بزنم؟"} is RTL although it starts with a Latin word.</li>
+ *   <li>{@code SkiaParagraphIntrinsics_skikoKt.resolveTextDirection}: use RTL for a Persian paragraph even when a
+ *   Markdown renderer supplies an explicit LTR direction. This also handles paragraphs starting with a Latin word.</li>
  * </ol>
  * English text and code stay LTR. Both patches are reverted when the feature is switched off.
  */
@@ -83,11 +83,11 @@ final class ComposeTextDirectionPatch {
         byte[] result;
         if (TEXT_STYLE_KT.equals(className)) {
           result = patchResolveTextDirection(classfileBuffer);
-          if (result != null) patched = true;
         }
         else {
-          result = canSeeAgent(loader) ? patchContentBasedTextDirection(classfileBuffer) : null;
+          result = canSeeAgent(loader) ? patchFinalTextDirection(classfileBuffer) : null;
         }
+        if (result != null && PARAGRAPH_INTRINSICS_KT.equals(className)) patched = true;
         LOG.info((result != null ? "Patched " : "Left unchanged (unexpected shape) ") + className);
         return result;
       }
@@ -141,13 +141,14 @@ final class ComposeTextDirectionPatch {
     });
   }
 
-  /** Patch 2: {@code if (RtlAgent.mostlyRtl(text)) return ResolvedTextDirection.Rtl;} */
-  static byte[] patchContentBasedTextDirection(byte[] classBytes) {
+  /** Patch 2: override the final direction decision for Persian text, including an explicitly LTR style. */
+  static byte[] patchFinalTextDirection(byte[] classBytes) {
     ClassReader reader = new ClassReader(classBytes);
     MethodMatcher matcher = (access, name, desc) -> (access & Opcodes.ACC_STATIC) != 0
-                                                     && name.equals("contentBasedTextDirection")
-                                                     && desc.startsWith("(Ljava/lang/String;")
-                                                     && desc.endsWith(")L" + RESOLVED_TEXT_DIRECTION + ";");
+                                                     && name.startsWith("resolveTextDirection-")
+                                                     && desc.equals("(Ljava/lang/String;L" + TEXT_DIRECTION
+                                                                    + ";Landroidx/compose/ui/text/intl/LocaleList;)L"
+                                                                    + RESOLVED_TEXT_DIRECTION + ";");
     if (!scan(reader, matcher, null)) return null;
 
     return prepend(reader, matcher, mv -> {
