@@ -1,0 +1,36 @@
+<idea-plugin require-restart="true">
+  <id>ir.persian.rtlaichat</id>
+  <name>Persian RTL for AI Chat</name>
+  <version>1.0.1</version>
+  <vendor>rtl-ai-chat</vendor>
+
+  <description><![CDATA[
+    Right-to-left support for Persian (and Arabic/Hebrew) text in the JetBrains AI Assistant chat.
+    <ul>
+      <li>Chat messages (yours and the AI's): each paragraph gets its own direction. A paragraph is RTL and
+          right-aligned when it starts with a Persian letter or is mostly Persian; English text and code stay LTR.</li>
+      <li>The prompt box switches to RTL (direction and alignment) while the prompt is Persian.</li>
+      <li>Optional: mirror the whole chat panel to an RTL layout.</li>
+    </ul>
+    Settings: <b>Settings | Tools | Persian RTL for AI Chat</b>.
+  ]]></description>
+
+  <idea-version since-build="243"/>
+
+  <depends>com.intellij.modules.platform</depends>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <applicationService serviceImplementation="ir.persian.rtlaichat.RtlSettings"/>
+    <applicationConfigurable parentId="tools" id="ir.persian.rtlaichat.settings"
+                             displayName="Persian RTL for AI Chat"
+                             instance="ir.persian.rtlaichat.RtlConfigurable"/>
+    <editorFactoryListener implementation="ir.persian.rtlaichat.ChatInputAligner"/>
+    <!-- "ChatInput" is the language of the AI Assistant prompt box. -->
+    <bidiRegionsSeparator language="ChatInput" implementationClass="ir.persian.rtlaichat.ChatInputBidiRegionsSeparator"/>
+    <notificationGroup id="Persian RTL AI Chat" displayType="BALLOON"/>
+  </extensions>
+
+  <applicationListeners>
+    <listener class="ir.persian.rtlaichat.RtlApplier" topic="com.intellij.ide.AppLifecycleListener"/>
+  </applicationListeners>
+</idea-plugin>

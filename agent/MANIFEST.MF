@@ -1,0 +1,5 @@
+Manifest-Version: 1.0
+Agent-Class: ir.persian.rtlaichat.agent.RtlAgent
+Premain-Class: ir.persian.rtlaichat.agent.RtlAgent
+Can-Retransform-Classes: true
+Can-Redefine-Classes: true
